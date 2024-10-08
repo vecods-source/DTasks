@@ -22,20 +22,18 @@ app.use(express.static("public"));
 let items = [];
 
 app.get("/", async (req, res) => {
-  await db.query("SELECT * FROM items",(err,res)=>{
-    if(err){
-      console.log("error excuting the query ",err.stack)
-    }
-    else{
-      items = res.rows;
-      console.log(items);
-    }
-  })
-  res.render("index.ejs", {
-    listTitle: "Today",
-    listItems: items
+  try {
+    const result = await db.query("SELECT * FROM items ORDER BY id ASC");
+    items = result.rows;
+
+    res.render("index.ejs", {
+      listTitle: "Today",
+      listItems: items,
+    });
+  } catch (err) {
+    console.log(err);
+  }
   });
-});
 
 app.post("/add", async (req, res) => {
   const item = req.body.newItem;
@@ -43,10 +41,28 @@ app.post("/add", async (req, res) => {
   res.redirect("/");
 });
 
-app.post("/edit", (req, res) => {});
+app.post("/edit", async (req, res) => {
+  const CurrentId = req.body.updatedItemId;
+  const NewTitle = req.body.updatedItemTitle;
 
-app.post("/delete", (req, res) => {});
+  console.log(`the current id ${CurrentId}, the new titel ${NewTitle}`);
+  await db.query("UPDATE items SET title = ($1) WHERE id = ($2)",[NewTitle,CurrentId]);
+  
+  res.redirect("/");
+});
+
+app.post("/delete", async (req, res) => {
+  const CurrentId = req.body.deleteItemId;
+  
+  try{
+    await db.query("DELETE FROM items WHERE id = ($1)",[CurrentId]);
+    res.redirect("/");
+  }catch(err){
+    console.log(err);
+  }
+
+});
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`http://localhost:${3000}/`);
 });
